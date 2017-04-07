@@ -13,6 +13,7 @@ public class Angle_Analysis implements PlugIn, ActionListener {
 	Button m_bt_set, m_bt_reset;
 	TextField m_txt_low, m_txt_high;	// higher/lower thresholds
 	TextField m_txt_num_ang;			// number of angles
+	TextField m_txt_srcx, m_txt_srcy;	// Source coordinate
 	
 	private double length_2d(double x1, double y1, double x2, double y2){
 		return Math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
@@ -106,6 +107,7 @@ public class Angle_Analysis implements PlugIn, ActionListener {
 		Roi roi_sel = imp.getRoi();
 		if(null == roi_sel){
 			IJ.showMessage("No area selected. ");
+			return;
 		}
         
 		double[] com_sel = new double[2];
@@ -145,14 +147,16 @@ public class Angle_Analysis implements PlugIn, ActionListener {
 		int high = Integer.parseInt(m_txt_high.getText());
 		if (low > high){
 			IJ.showMessage("Lower threshold must be lower than Higher threshold.");
+			return;
 		}
 		
 		// Number of angles
 		int num_ang = Integer.parseInt(m_txt_num_ang.getText());
 		if (num_ang < 0 || num_ang > 360){
 			IJ.showMessage("Number of angles must be 0-360.");
+			return;
 		}
-
+		
 		// IJ
 		ImagePlus imp = IJ.getImage();
         if (null == imp) return;
@@ -182,8 +186,9 @@ public class Angle_Analysis implements PlugIn, ActionListener {
     
     public void run(String arg) {	
 		
+        Panel p = new Panel();
     	Frame frm = new Frame(new String("Angle analysis"));
-    	frm.setSize(new Dimension(300,150));
+    	frm.setSize(new Dimension(300,200));
     	frm.setLayout(new GridLayout(0, 1));
         frm.addWindowListener(new WindowAdapter() {
         	public void windowClosing(WindowEvent e) {
@@ -191,10 +196,27 @@ public class Angle_Analysis implements PlugIn, ActionListener {
         	}
         });
         
+        // Centering modes
+        Choice c = new Choice();
+        c.add("No centering");
+        c.add("Maximum centering");
+        c.add("Source centering");
+        addLabeledComponent("Centering mode:", frm, c);
+
+        // Point source coordinate
+        Panel pr = new Panel();
+		pr.setLayout(new GridLayout(0, 2));
+        m_txt_srcx = new TextField("0");
+        m_txt_srcx.setEnabled(false);
+        m_txt_srcy = new TextField("0");
+        m_txt_srcy.setEnabled(false);
+        pr.add(m_txt_srcx);
+        pr.add(m_txt_srcy);
+        addLabeledComponent("Source coordinate:", frm, pr);
+        
         // Number of angles
         m_txt_num_ang = new TextField("360");
-        addLabeledComponent("Number of angles: ", frm, m_txt_num_ang);
-        Panel p = new Panel();
+        addLabeledComponent("Number of angles:", frm, m_txt_num_ang);
 
         // Lower/Higher thresholds
         m_txt_low = new TextField("2200");
@@ -204,7 +226,7 @@ public class Angle_Analysis implements PlugIn, ActionListener {
 		addLabeledComponent("Higher threshold level:", frm, m_txt_high);
         
 		// Set/Reset threshold button
-		p = new Panel();
+        p = new Panel();
 		p.setLayout(new GridLayout(0, 2));
 
 		m_bt_set = new Button("Set threshold");
