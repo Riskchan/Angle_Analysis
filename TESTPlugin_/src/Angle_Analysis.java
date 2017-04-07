@@ -9,6 +9,7 @@ import java.util.*;
 public class Angle_Analysis implements PlugIn, ActionListener {
 
 	// Member variables
+
 	Button m_bt_run;
 	Button m_bt_set, m_bt_reset;
 	TextField m_txt_low, m_txt_high;
