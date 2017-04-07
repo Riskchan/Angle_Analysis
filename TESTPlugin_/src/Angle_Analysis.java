@@ -9,11 +9,10 @@ import java.util.*;
 public class Angle_Analysis implements PlugIn, ActionListener {
 
 	// Member variables
-
 	Button m_bt_run;
 	Button m_bt_set, m_bt_reset;
-	TextField m_txt_low, m_txt_high;
-	
+	TextField m_txt_low, m_txt_high;	// higher/lower thresholds
+	TextField m_txt_num_ang;			// number of angles
 	
 	private double length_2d(double x1, double y1, double x2, double y2){
 		return Math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
@@ -97,7 +96,7 @@ public class Angle_Analysis implements PlugIn, ActionListener {
 		return com;
 	}
 
-	private void angle_analysis(int threshold_low, int threshold_high) {
+	private void angle_analysis(int threshold_low, int threshold_high, int N) {
 		ImagePlus imp = IJ.getImage();
         if (null == imp) return;
 
@@ -122,7 +121,6 @@ public class Angle_Analysis implements PlugIn, ActionListener {
 		double[] com = new double[2];
 		com = getCenterOfMass(roi);
 
-		int N = 360;
 		IJ.log("\\Clear");
 		for(int i=0; i<N; i++){
 			double ang = 2*i*Math.PI/N;
@@ -142,9 +140,18 @@ public class Angle_Analysis implements PlugIn, ActionListener {
 	}
 	
     public void actionPerformed(ActionEvent e){
-    	// Default values
+    	// Thresholds
 		int low = Integer.parseInt(m_txt_low.getText());
 		int high = Integer.parseInt(m_txt_high.getText());
+		if (low > high){
+			IJ.showMessage("Lower threshold must be lower than Higher threshold.");
+		}
+		
+		// Number of angles
+		int num_ang = Integer.parseInt(m_txt_num_ang.getText());
+		if (num_ang < 0 || num_ang > 360){
+			IJ.showMessage("Number of angles must be 0-360.");
+		}
 
 		// IJ
 		ImagePlus imp = IJ.getImage();
@@ -155,17 +162,24 @@ public class Angle_Analysis implements PlugIn, ActionListener {
     	if (b==null)
     		return;
     	else if (b==m_bt_run){
-    		angle_analysis(low, high);
+    		angle_analysis(low, high, num_ang);
     	}else if (b==m_bt_set){
 			ip.setThreshold(low, high, ImageProcessor.RED_LUT);
 			imp.updateAndDraw();    		
     	}else if (b==m_bt_reset){
-            //Execute when button is pressed 
         	ip.resetThreshold();
 			imp.updateAndDraw();
     	}
 	}
-	
+    
+    private void addLabeledComponent(String l, Frame frm, Component c){
+        Panel p = new Panel();
+		p.setLayout(new GridLayout(0, 2));
+		p.add(new Label(l));
+        p.add(c);
+        frm.add(p);
+    }
+    
     public void run(String arg) {	
 		
     	Frame frm = new Frame(new String("Angle analysis"));
@@ -177,19 +191,17 @@ public class Angle_Analysis implements PlugIn, ActionListener {
         	}
         });
         
-		// Lower/Higher thresholds
-		Panel p = new Panel();
-		p.setLayout(new GridLayout(0, 2));
-		Label l1 = new Label("Lower threshold level:");
-		p.add(l1);
-        m_txt_low = new TextField(2200);
-        p.add(m_txt_low);
+        // Number of angles
+        m_txt_num_ang = new TextField("360");
+        addLabeledComponent("Number of angles: ", frm, m_txt_num_ang);
+        Panel p = new Panel();
 
-		Label l2 = new Label("Higher threshold level:");
-		p.add(l2);
-        m_txt_high = new TextField(10000);
-        p.add(m_txt_high);
-        frm.add(p);
+        // Lower/Higher thresholds
+        m_txt_low = new TextField("2200");
+        addLabeledComponent("Lower threshold level:", frm, m_txt_low);
+        
+        m_txt_high = new TextField("10000");
+		addLabeledComponent("Higher threshold level:", frm, m_txt_high);
         
 		// Set/Reset threshold button
 		p = new Panel();
