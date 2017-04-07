@@ -6,7 +6,7 @@ import ij.plugin.*;
 import java.awt.event.*;
 import java.util.*;
 
-public class Angle_Analysis implements PlugIn, ActionListener {
+public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
 
 	// Member variables
 	Button m_bt_run;
@@ -141,6 +141,7 @@ public class Angle_Analysis implements PlugIn, ActionListener {
 		imp.setRoi(roi);
 	}
 	
+	// Buttons pressed
     public void actionPerformed(ActionEvent e){
     	// Thresholds
 		int low = Integer.parseInt(m_txt_low.getText());
@@ -155,7 +156,7 @@ public class Angle_Analysis implements PlugIn, ActionListener {
 		if (num_ang < 0 || num_ang > 360){
 			IJ.showMessage("Number of angles must be 0-360.");
 			return;
-		}
+		}		
 		
 		// IJ
 		ImagePlus imp = IJ.getImage();
@@ -175,7 +176,20 @@ public class Angle_Analysis implements PlugIn, ActionListener {
 			imp.updateAndDraw();
     	}
 	}
-    
+
+    // Choice changed
+    public void itemStateChanged(ItemEvent e) {
+		Choice cho = (Choice)e.getItemSelectable();
+		if (cho.getSelectedItem() == "Source centering"){
+			m_txt_srcx.setEnabled(true);
+			m_txt_srcy.setEnabled(true);
+		}else{
+			m_txt_srcx.setEnabled(false);
+			m_txt_srcy.setEnabled(false);
+		}
+    }
+
+    // Adding new label + component
     private void addLabeledComponent(String l, Frame frm, Component c){
         Panel p = new Panel();
 		p.setLayout(new GridLayout(0, 2));
@@ -188,7 +202,7 @@ public class Angle_Analysis implements PlugIn, ActionListener {
 		
         Panel p = new Panel();
     	Frame frm = new Frame(new String("Angle analysis"));
-    	frm.setSize(new Dimension(300,200));
+    	frm.setSize(new Dimension(300,220));
     	frm.setLayout(new GridLayout(0, 1));
         frm.addWindowListener(new WindowAdapter() {
         	public void windowClosing(WindowEvent e) {
@@ -201,6 +215,7 @@ public class Angle_Analysis implements PlugIn, ActionListener {
         c.add("No centering");
         c.add("Maximum centering");
         c.add("Source centering");
+        c.addItemListener(this);
         addLabeledComponent("Centering mode:", frm, c);
 
         // Point source coordinate
