@@ -7,13 +7,14 @@ import java.awt.event.*;
 import java.util.*;
 
 public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
-
 	// Member variables
-	Button m_bt_run;
-	Button m_bt_set, m_bt_reset;
+	Button m_bt_run;					// run button
+	Button m_bt_set, m_bt_reset;		// set/reset button
 	TextField m_txt_low, m_txt_high;	// higher/lower thresholds
 	TextField m_txt_num_ang;			// number of angles
 	TextField m_txt_srcx, m_txt_srcy;	// Source coordinate
+	Choice m_cho_ctrg;					// Centering mode
+	static public final int NO_CENTERING=0, MAXIMUM_CENTERING=1, SOURCE_CENTERING=2;
 	
 	private double length_2d(double x1, double y1, double x2, double y2){
 		return Math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
@@ -123,6 +124,7 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
 		double[] com = new double[2];
 		com = getCenterOfMass(roi);
 
+		ArrayList<Double> max_arry = new ArrayList<Double>();
 		IJ.log("\\Clear");
 		for(int i=0; i<N; i++){
 			double ang = 2*i*Math.PI/N;
@@ -134,13 +136,40 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
 			imp.setRoi(line);
 			ProfilePlot prof = new ProfilePlot(imp);
 			double max_prof = prof.getMax();
-			IJ.log(String.valueOf(max_prof));
+			max_arry.add(max_prof);
+		}
+
+		// Centering
+		String ctr_mode = m_cho_ctrg.getSelectedItem();
+		if (ctr_mode == "No centering"){
+			for(int i=0; i<N; i++){
+				IJ.log(String.valueOf(max_arry.get(i)));
+			}
+		}else if(ctr_mode == "Maximum centering"){
+			// Find max
+			int i_max = 0;
+			double max = 0;
+			for(int i=0; i<N; i++){
+				if(max_arry.get(i) > max){
+					i_max = i;
+					max = max_arry.get(i);
+				}
+			}
+
+			// Centering at max
+			for(int i=0; i<N; i++){
+				int i_dist = (i_max + i + N/2) % N;
+				IJ.log(String.valueOf(max_arry.get(i_dist)));
+			}
+
+		}else if(ctr_mode == "Source centering"){
+			
 		}
 
 		// Show polygon
 		imp.setRoi(roi);
 	}
-	
+
 	// Buttons pressed
     public void actionPerformed(ActionEvent e){
     	// Thresholds
@@ -156,8 +185,8 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
 		if (num_ang < 0 || num_ang > 360){
 			IJ.showMessage("Number of angles must be 0-360.");
 			return;
-		}		
-		
+		}
+				
 		// IJ
 		ImagePlus imp = IJ.getImage();
         if (null == imp) return;
@@ -211,12 +240,12 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
         });
         
         // Centering modes
-        Choice c = new Choice();
-        c.add("No centering");
-        c.add("Maximum centering");
-        c.add("Source centering");
-        c.addItemListener(this);
-        addLabeledComponent("Centering mode:", frm, c);
+        m_cho_ctrg = new Choice();
+        m_cho_ctrg.add("No centering");
+        m_cho_ctrg.add("Maximum centering");
+        m_cho_ctrg.add("Source centering");
+        m_cho_ctrg.addItemListener(this);
+        addLabeledComponent("Centering mode:", frm, m_cho_ctrg);
 
         // Point source coordinate
         Panel pr = new Panel();
@@ -263,7 +292,6 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
 
 		// Show
 		frm.show();
-
     }
 
 }
