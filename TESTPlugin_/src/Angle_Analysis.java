@@ -14,7 +14,6 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
 	TextField m_txt_num_ang;			// number of angles
 	TextField m_txt_srcx, m_txt_srcy;	// Source coordinate
 	Choice m_cho_ctrg;					// Centering mode
-	static public final int NO_CENTERING=0, MAXIMUM_CENTERING=1, SOURCE_CENTERING=2;
 	
 	private double length_2d(double x1, double y1, double x2, double y2){
 		return Math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
@@ -125,7 +124,6 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
 		com = getCenterOfMass(roi);
 
 		ArrayList<Double> max_arry = new ArrayList<Double>();
-		IJ.log("\\Clear");
 		for(int i=0; i<N; i++){
 			double ang = 2*i*Math.PI/N;
 			double len = getIntersectionLength(com[0], com[1], ang, roi);
@@ -140,6 +138,7 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
 		}
 
 		// Centering
+		IJ.log("\\Clear");
 		String ctr_mode = m_cho_ctrg.getSelectedItem();
 		if (ctr_mode == "No centering"){
 			for(int i=0; i<N; i++){
@@ -158,12 +157,36 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
 
 			// Centering at max
 			for(int i=0; i<N; i++){
-				int i_dist = (i_max + i + N/2) % N;
-				IJ.log(String.valueOf(max_arry.get(i_dist)));
+				int i_new = (i_max + i + N/2) % N;
+				IJ.log(String.valueOf(max_arry.get(i_new)));
+			}
+		}else if(ctr_mode == "Source centering"){
+			// Calculate relative angle vector
+			double vecx = Double.parseDouble(m_txt_srcx.getText()) - com[0];
+			double vecy = Double.parseDouble(m_txt_srcy.getText()) - com[1];
+			double len = Math.sqrt(vecx*vecx + vecy*vecy);
+			vecx /= len;
+			vecy /= len;
+			
+			// Find the closest angle
+			int i_ang = 0;
+			double min_len = 100000;
+			for(int i=0; i<N; i++){
+				double ang = 2*i*Math.PI/N;
+				double angx = Math.cos(ang);
+				double angy = Math.sin(ang);
+				double rel_len = length_2d(angx, angy, vecx, vecy);
+				if(rel_len < min_len){
+					i_ang = i;
+					min_len = rel_len;
+				}
 			}
 
-		}else if(ctr_mode == "Source centering"){
-			
+			// Centering at relative direction
+			for(int i=0; i<N; i++){
+				int i_new = (i_ang + i + N/2) % N;
+				IJ.log(String.valueOf(max_arry.get(i_new)));
+			}
 		}
 
 		// Show polygon
