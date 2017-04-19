@@ -292,7 +292,7 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
         // Lower/Higher thresholds
         m_txt_low = new TextField("2200");
         addLabeledComponent("Lower threshold level:", frm, m_txt_low);
-        m_txt_low.addActionListener(this);
+//        m_txt_low.addActionListener(this);
         
         m_txt_high = new TextField("10000");
 		addLabeledComponent("Higher threshold level:", frm, m_txt_high);
