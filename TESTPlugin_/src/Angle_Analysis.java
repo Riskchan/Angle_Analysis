@@ -6,7 +6,7 @@ import ij.plugin.*;
 import java.awt.event.*;
 import java.util.*;
 
-public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
+public class Angle_Analysis implements PlugIn, ActionListener, ItemListener, KeyListener{
 	// Member variables
 	Button m_bt_run;					// run button
 	Button m_bt_set, m_bt_reset;		// set/reset button
@@ -219,15 +219,15 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
         if (null == imp) return;
 		ImageProcessor ip = imp.getProcessor();		
 
-		Button b = (Button)e.getSource();
-    	if (b==null){
+		Object src = e.getSource();
+    	if (src==null){
 			return;
-    	}else if (b==m_bt_run){
+    	}else if (src.equals(m_bt_run)){
     		angle_analysis(low, high, num_ang);
-    	}else if (b==m_bt_set){
+    	}else if (src.equals(m_bt_set)){
 			ip.setThreshold(low, high, ImageProcessor.RED_LUT);
 			imp.updateAndDraw();    		
-    	}else if (b==m_bt_reset){
+    	}else if (src.equals(m_bt_reset)){
         	ip.resetThreshold();
 			imp.updateAndDraw();
     	}
@@ -245,6 +245,35 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
 		}
     }
 
+    // Key pressed
+    public void keyPressed(KeyEvent e) {
+    	// If Enter pressed...
+		if(e.getKeyCode() == e.VK_ENTER){
+			// IJ
+			ImagePlus imp = IJ.getImage();
+	        if (null == imp) return;
+			ImageProcessor ip = imp.getProcessor();		
+
+			int low = Integer.parseInt(m_txt_low.getText());
+			int high = Integer.parseInt(m_txt_high.getText());
+			if (low > high){
+				IJ.showMessage("Lower threshold must be lower than Higher threshold.");
+				return;
+			}
+
+			ip.setThreshold(low, high, ImageProcessor.RED_LUT);
+			imp.updateAndDraw();    		    		
+    	}
+    }
+    
+    public void keyReleased(KeyEvent e) {
+    	// Do nothing
+    }
+    
+    public void keyTyped(KeyEvent e) {
+    	// Do nothing
+    }
+    
     // Adding new label + component
     private void addLabeledComponent(String l, Frame frm, Component c){
         Panel p = new Panel();
@@ -292,10 +321,11 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
         // Lower/Higher thresholds
         m_txt_low = new TextField("2200");
         addLabeledComponent("Lower threshold level:", frm, m_txt_low);
-//        m_txt_low.addActionListener(this);
+        m_txt_low.addKeyListener(this);
         
         m_txt_high = new TextField("10000");
 		addLabeledComponent("Higher threshold level:", frm, m_txt_high);
+        m_txt_high.addKeyListener(this);
         
 		// Set/Reset threshold button
         p = new Panel();
