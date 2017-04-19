@@ -103,6 +103,7 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
 
 		ImageProcessor ip = imp.getProcessor();
 
+		/*
 		// Find center of selection
 		Roi roi_sel = imp.getRoi();
 		if(null == roi_sel){
@@ -118,6 +119,9 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
 		wand.autoOutline((int)com_sel[0], (int)com_sel[1], threshold_low, threshold_high);
 		PolygonRoi roi = new PolygonRoi(wand.xpoints, wand.ypoints, wand.npoints, Roi.FREELINE);
 		imp.setRoi(roi);
+		*/
+		
+		Roi roi = imp.getRoi();
 
 		// Calculate COM of Wand
 		double[] com = new double[2];
@@ -216,9 +220,9 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
 		ImageProcessor ip = imp.getProcessor();		
 
 		Button b = (Button)e.getSource();
-    	if (b==null)
-    		return;
-    	else if (b==m_bt_run){
+    	if (b==null){
+			return;
+    	}else if (b==m_bt_run){
     		angle_analysis(low, high, num_ang);
     	}else if (b==m_bt_set){
 			ip.setThreshold(low, high, ImageProcessor.RED_LUT);
@@ -288,6 +292,7 @@ public class Angle_Analysis implements PlugIn, ActionListener, ItemListener{
         // Lower/Higher thresholds
         m_txt_low = new TextField("2200");
         addLabeledComponent("Lower threshold level:", frm, m_txt_low);
+        m_txt_low.addActionListener(this);
         
         m_txt_high = new TextField("10000");
 		addLabeledComponent("Higher threshold level:", frm, m_txt_high);
