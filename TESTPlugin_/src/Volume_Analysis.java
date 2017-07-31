@@ -54,23 +54,12 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
 		int low = Integer.parseInt(m_txt_low.getText());
 		int high = Integer.parseInt(m_txt_high.getText());
 
-		// Finding max/min
-		float max = 0, min = 10000000; 
+		boolean isinside = false;
 		for (Point p : roi.getContainedPoints()) {
 			float val = ip.getf(p.x, p.y);
-			if(val > max) max = val;
-			if(val < min) min = val;
+			if(low < val && val < high)	isinside = true;
 		}
-		
-		if(low < min && max < high){
-			return true;
-		}
-		else if(max < low || min > high){
-			return false;
-		}else{
-			IJ.log("(Max, min, Low, High) = (" + max + ", " + min + ", " + low + ", " + high + ")");
-			return false;
-		}
+		return isinside;
 	}
 
 	// Combine Rois and register to the Roi manager
@@ -119,11 +108,6 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
         	}
         }
 
-        for(int i=0; i<next_rois.size(); i++){
-        	manager.addRoi(next_rois.get(i));
-        }
-
-        /*
         // Find +/- Roi
         ArrayList<Roi> pos_roi = new ArrayList<Roi>();
         ArrayList<Roi> neg_roi = new ArrayList<Roi>();
@@ -139,7 +123,6 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
         // Combine +/- roi
         combineRoi(pos_roi, manager);
         combineRoi(neg_roi, manager);
-        */
 	}
 	
 	private void volume_analysis() {
@@ -197,17 +180,7 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
 			imp.updateAndDraw();
     	}else if (src.equals(m_bt_debug)){
             Roi curroi = imp.getRoi();
-			for (Point p : curroi.getContainedPoints()) {
-				if(ip.getf(p.x, p.y) < low){
-					IJ.log("lower than threshold");
-				}
-				else if(low < ip.getf(p.x, p.y) && ip.getf(p.x, p.y) < high){
-					IJ.log("in threshold");
-				}
-				else{
-					IJ.log("higher than threshold");
-				}
-			}	
+            checkInside(curroi, ip);
     	}
 	}
 
@@ -296,14 +269,12 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
 		frm.add(p);
 
 		// Button for debugging purpose
-		/*
 		p = new Panel();
 		p.setLayout(new GridLayout(1, 1));
 		m_bt_debug = new Button("Debug");
 		m_bt_debug.addActionListener(this);
 		p.add(m_bt_debug);
 		frm.add(p);
-	 	*/
 		
 		// Show
 		frm.show();
