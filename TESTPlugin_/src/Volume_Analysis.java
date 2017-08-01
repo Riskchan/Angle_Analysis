@@ -48,7 +48,8 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
     	return roi_arry;
 	}
 
-	// Check if the value in the roi is within the range
+	// Check if the value in the roi is within the range 
+	// Returns true if inside is within the range
 	private boolean checkInside(Roi roi, ImageProcessor ip){
     	// Thresholds
 		int low = Integer.parseInt(m_txt_low.getText());
@@ -64,15 +65,17 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
 
 	// Combine Rois and register to the Roi manager
 	private void combineRoi(ArrayList<Roi> rois, RoiManager manager){
+        ImagePlus imp = IJ.getImage();
+
         if(rois.size() == 1){
-        	manager.addRoi(rois.get(0));
+    		manager.addRoi(rois.get(0));
         }else if(rois.size() > 1){
         	ShapeRoi roi1 = new ShapeRoi(rois.get(0));
         	for(int i=1; i<rois.size(); i++){
         		ShapeRoi roi2 = new ShapeRoi(rois.get(i));
         		roi1 = roi1.or(roi2);
         	}
-        	manager.addRoi(roi1);
+    		manager.addRoi(roi1);
         }		
 	}
 	
@@ -90,7 +93,9 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
         
 		// Select all
         ThresholdToSelection th = new ThresholdToSelection();
-        ShapeRoi shroi = new ShapeRoi(th.run(imp));
+        Roi throi = th.convert(ip);
+        if (null == throi) return;
+        ShapeRoi shroi = new ShapeRoi(throi);
         Roi[] all_rois = shroi.getRois();
 
         ArrayList<Roi> next_rois = new ArrayList<Roi>();
@@ -123,6 +128,7 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
         // Combine +/- roi
         combineRoi(pos_roi, manager);
         combineRoi(neg_roi, manager);
+        
 	}
 	
 	private void volume_analysis() {
@@ -141,15 +147,18 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
     		manager = new RoiManager();
     	manager.addRoi(curroi);
     	
-        // Forward search
+        // Current slice to top
         for(int i=cur_slice; i<Num; i++){
         	findNextRois(i, manager, 1);
         }
 
-        //Backward search
-        for(int i=cur_slice; i>=1; i--){
+        // Current slice to bottom
+        for(int i=cur_slice; i>1; i--){
         	findNextRois(i, manager, -1);
         }
+
+        // Sort Roi manager
+    	manager.runCommand("sort");
 	}
 
 	// Buttons pressed
@@ -235,7 +244,7 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
         });
         
         // Minimum area
-        m_min_area = new TextField("10");
+        m_min_area = new TextField("0");
 		addLabeledComponent("Ignore less than (px^2):", frm, m_min_area);
 
         // Lower/Higher thresholds
@@ -269,12 +278,14 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
 		frm.add(p);
 
 		// Button for debugging purpose
+		/*
 		p = new Panel();
 		p.setLayout(new GridLayout(1, 1));
 		m_bt_debug = new Button("Debug");
 		m_bt_debug.addActionListener(this);
 		p.add(m_bt_debug);
 		frm.add(p);
+		*/
 		
 		// Show
 		frm.show();
