@@ -64,9 +64,9 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
 	}
 
 	// Combine Rois and register to the Roi manager
-	private void combineRoi(ArrayList<Roi> rois, RoiManager manager){
+	private void combineRoi(ArrayList<Roi> rois, RoiManager manager, int slice){
         ImagePlus imp = IJ.getImage();
-
+        
         if(rois.size() == 1){
     		manager.addRoi(rois.get(0));
         }else if(rois.size() > 1){
@@ -98,7 +98,7 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
         ShapeRoi shroi = new ShapeRoi(throi);
         Roi[] all_rois = shroi.getRois();
 
-        ArrayList<Roi> next_rois = new ArrayList<Roi>();
+        ArrayList<Roi> next_rois = getRoisAtSlice(manager, next_slice);
         // Find overlapped rois with current rois
 		int min_area = Integer.parseInt(m_min_area.getText());
         for(int i=0; i<all_rois.length; i++){
@@ -126,9 +126,8 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
         }
         
         // Combine +/- roi
-        combineRoi(pos_roi, manager);
-        combineRoi(neg_roi, manager);
-        
+        combineRoi(pos_roi, manager, next_slice);
+        combineRoi(neg_roi, manager, next_slice);
 	}
 	
 	private void volume_analysis() {
@@ -154,6 +153,19 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
 
         // Current slice to bottom
         for(int i=cur_slice; i>1; i--){
+        	findNextRois(i, manager, -1);
+        }
+
+        // Sort Roi manager
+    	manager.runCommand("sort");
+    	
+    	// Forward search
+        for(int i=1; i<Num; i++){
+        	findNextRois(i, manager, 1);
+        }
+    	
+        // Backward search
+        for(int i=Num-1; i>1; i--){
         	findNextRois(i, manager, -1);
         }
 
