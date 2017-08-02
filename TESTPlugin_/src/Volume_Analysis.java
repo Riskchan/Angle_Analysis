@@ -34,20 +34,6 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
 		return !area.isEmpty();
 	}
 	
-	// Obtain roi at slice 
-	private ArrayList<Roi> getRoisAtSlice(RoiManager manager, int slice){
-		ArrayList<Roi> roi_arry = new ArrayList<Roi>();
-
-		List labels = manager.getList();
-    	for (int i = 0; i < labels.getItemCount(); i++) {
-    		String label = labels.getItem(i);
-    		if(manager.getSliceNumber(label) == slice){
-    			roi_arry.add(manager.getRoi(i));
-    		}
-    	}        
-    	return roi_arry;
-	}
-
 	// Check if the value in the roi is within the range 
 	// Returns true if inside is within the range
 	private boolean checkInside(Roi roi, ImageProcessor ip){
@@ -63,34 +49,32 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
 		return isinside;
 	}
 
-	// Combine Rois and register to the Roi manager
-	private void combineRoi(ArrayList<Roi> rois, RoiManager manager, int slice){
-        ImagePlus imp = IJ.getImage();
-        
-        if(rois.size() == 1){
-    		manager.addRoi(rois.get(0));
-        }else if(rois.size() > 1){
-        	ShapeRoi roi1 = new ShapeRoi(rois.get(0));
-        	for(int i=1; i<rois.size(); i++){
-        		ShapeRoi roi2 = new ShapeRoi(rois.get(i));
-        		roi1 = roi1.or(roi2);
-        	}
-    		manager.addRoi(roi1);
-        }		
+	// Combine Rois (returns null if rois are empty)
+	private Roi combineRoi(ArrayList<Roi> rois){
+		if(rois.size() > 1){
+	    	ShapeRoi roi1 = new ShapeRoi(rois.get(0));
+	    	for(int i=1; i<rois.size(); i++){
+	    		ShapeRoi roi2 = new ShapeRoi(rois.get(i));
+	    		roi1 = roi1.or(roi2);
+	    	}
+	    	return roi1;			
+		}else{
+			return null;
+		}
 	}
 	
-	private void findNextRois(int cur_slice, RoiManager manager, int step){
+	private void findNextRois(ArrayList<ArrayList<Roi>> roimap, int cur_slice, int step){
         ImagePlus imp = IJ.getImage();
         if (null == imp) return;
 		ImageProcessor ip = imp.getProcessor();
 
+        // obtain rois at current slice
+        ArrayList<Roi> cur_rois = roimap.get(cur_slice);
+        
 		// Go to the next slice
     	int next_slice = cur_slice + step;
         imp.setPosition(next_slice);
 
-        // obtain rois at current slice
-        ArrayList<Roi> cur_rois = getRoisAtSlice(manager, cur_slice);
-        
 		// Select all
         ThresholdToSelection th = new ThresholdToSelection();
         Roi throi = th.convert(ip);
@@ -98,7 +82,7 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
         ShapeRoi shroi = new ShapeRoi(throi);
         Roi[] all_rois = shroi.getRois();
 
-        ArrayList<Roi> next_rois = getRoisAtSlice(manager, next_slice);
+        ArrayList<Roi> next_rois = new ArrayList<Roi>(roimap.get(next_slice));
         // Find overlapped rois with current rois
 		int min_area = Integer.parseInt(m_min_area.getText());
         for(int i=0; i<all_rois.length; i++){
@@ -114,6 +98,7 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
         }
 
         // Find +/- Roi
+        /*
         ArrayList<Roi> pos_roi = new ArrayList<Roi>();
         ArrayList<Roi> neg_roi = new ArrayList<Roi>();
         for(int i=0; i<next_rois.size(); i++){
@@ -124,10 +109,16 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
         		neg_roi.add(next_roi);
         	}
         }
-        
-        // Combine +/- roi
-        combineRoi(pos_roi, manager, next_slice);
-        combineRoi(neg_roi, manager, next_slice);
+        */
+
+        // Combine ROIs
+        Roi next_roi = combineRoi(next_rois);
+        if(next_roi != null){
+            next_rois = new ArrayList<Roi>();
+            next_rois.add(next_roi);
+        }
+
+        roimap.set(next_slice, next_rois);
 	}
 	
 	private void volume_analysis() {
@@ -135,42 +126,55 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
         if (null == imp) return;
 		ImageProcessor ip = imp.getProcessor();
 
+		// Roi manager
+    	RoiManager manager = RoiManager.getInstance();
+    	if (manager == null)
+    		manager = new RoiManager();
+
 		// Stack
         int Num = imp.getStackSize();
         int cur_slice = imp.getCurrentSlice();
 
-        // get current ROI and ROI manager
-        Roi curroi = imp.getRoi();
-    	RoiManager manager = RoiManager.getInstance();
-    	if (manager == null)
-    		manager = new RoiManager();
-    	manager.addRoi(curroi);
-    	
+        // Initialize ROI map
+        ArrayList<ArrayList<Roi>> roimap = new ArrayList<ArrayList<Roi>>();
+        for(int i=0; i<=Num; i++){
+        	ArrayList<Roi> roi_arry = new ArrayList<Roi>();
+        	roimap.add(roi_arry);
+        }
+
+        // Add current roi to ROI map
+        ArrayList<Roi> curroi = new ArrayList<Roi>();
+        curroi.add(imp.getRoi());
+        roimap.set(cur_slice, curroi);
+        
         // Current slice to top
         for(int i=cur_slice; i<Num; i++){
-        	findNextRois(i, manager, 1);
+        	findNextRois(roimap, i, 1);
         }
 
         // Current slice to bottom
         for(int i=cur_slice; i>1; i--){
-        	findNextRois(i, manager, -1);
+        	findNextRois(roimap, i, -1);
         }
 
-        // Sort Roi manager
-    	manager.runCommand("sort");
-    	
     	// Forward search
         for(int i=1; i<Num; i++){
-        	findNextRois(i, manager, 1);
+        	findNextRois(roimap, i, 1);
         }
     	
         // Backward search
         for(int i=Num-1; i>1; i--){
-        	findNextRois(i, manager, -1);
+        	findNextRois(roimap, i, -1);
         }
 
-        // Sort Roi manager
-    	manager.runCommand("sort");
+        for(int i=1; i<roimap.size(); i++){
+            imp.setPosition(i);
+    		ArrayList<Roi> rois = roimap.get(i);
+    		for(int j=0; j<rois.size(); j++){
+    			manager.addRoi(rois.get(j));
+    		}
+    	}
+        imp.setPosition(cur_slice);
 	}
 
 	// Buttons pressed
