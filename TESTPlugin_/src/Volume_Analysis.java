@@ -14,9 +14,11 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
 	// Member variables
 	Button m_bt_debug;					// button for debugging
 	Button m_bt_run;					// run button
+	Button m_bt_calc;					// calculate volume
 	Button m_bt_set, m_bt_reset;		// set/reset button
 	TextField m_txt_low, m_txt_high;	// higher/lower thresholds
 	TextField m_min_area;				// ignore area less than this
+	TextField m_z_px;					// z-pixels
 	
 	// Get area of roi
 	private int getRoiArea(Roi roi){
@@ -176,6 +178,41 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
     	}
         imp.setPosition(cur_slice);
 	}
+	
+	// Calculate volume
+	private void calc_volume(){
+		ImagePlus imp = IJ.getImage();
+        if (null == imp) return;
+		ImageProcessor ip = imp.getProcessor();
+
+        int cur_slice = imp.getCurrentSlice();
+		
+		// Roi manager
+    	RoiManager manager = RoiManager.getInstance();
+    	if (manager == null)
+    		manager = new RoiManager();
+
+		int z_px = Integer.parseInt(m_z_px.getText());
+    	
+    	int vol = 0;
+    	Roi[] rois = manager.getRoisAsArray();
+    	for(int i=0; i<rois.length; i++){
+    		int z = manager.getSliceNumber(manager.getName(i));
+    		imp.setPosition(z);
+    		
+    		int vol_roi = 0;
+            ShapeRoi shroi = new ShapeRoi(rois[i]);
+            Roi[] all_rois = shroi.getRois();
+    		for(int j=0; j<all_rois.length; j++){
+    			int sign = checkInside(all_rois[j], ip) ? +1 : -1;
+    			vol_roi += getRoiArea(all_rois[j]) * sign;
+    		}
+    		IJ.log(String.valueOf(vol_roi));
+    		vol += vol_roi*z_px;
+    	}
+    	IJ.log("Total volume = " + vol);
+        imp.setPosition(cur_slice);
+	}
 
 	// Buttons pressed
     public void actionPerformed(ActionEvent e){
@@ -197,6 +234,8 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
 			return;
     	}else if (src.equals(m_bt_run)){
     		volume_analysis();
+    	}else if (src.equals(m_bt_calc)){
+    		calc_volume();
     	}else if (src.equals(m_bt_set)){
 			ip.setThreshold(low, high, ImageProcessor.RED_LUT);
 			imp.updateAndDraw();    		
@@ -251,7 +290,7 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
 		
         Panel p = new Panel();
     	Frame frm = new Frame(new String("Volume analysis"));
-    	frm.setSize(new Dimension(300,150));
+    	frm.setSize(new Dimension(300,200));
     	frm.setLayout(new GridLayout(0, 1));
         frm.addWindowListener(new WindowAdapter() {
         	public void windowClosing(WindowEvent e) {
@@ -259,6 +298,10 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
         	}
         });
         
+        // Minimum area
+        m_z_px = new TextField("1");
+		addLabeledComponent("z-pixels:", frm, m_z_px);
+
         // Minimum area
         m_min_area = new TextField("0");
 		addLabeledComponent("Ignore less than (px^2):", frm, m_min_area);
@@ -291,6 +334,14 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
 		m_bt_run = new Button("Run");
 		m_bt_run.addActionListener(this);
 		p.add(m_bt_run);
+		frm.add(p);
+
+		// Calculate button
+		p = new Panel();
+		p.setLayout(new GridLayout(1, 1));
+		m_bt_calc = new Button("Calculate volume");
+		m_bt_calc.addActionListener(this);
+		p.add(m_bt_calc);
 		frm.add(p);
 
 		// Button for debugging purpose
