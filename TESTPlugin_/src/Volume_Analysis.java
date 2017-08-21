@@ -192,7 +192,7 @@ public class Volume_Analysis implements PlugIn, ActionListener, KeyListener{
     	if (manager == null)
     		manager = new RoiManager();
 
-		int z_px = Integer.parseInt(m_z_px.getText());
+		double z_px = Double.parseDouble(m_z_px.getText());
     	
     	int vol = 0;
     	Roi[] rois = manager.getRoisAsArray();
